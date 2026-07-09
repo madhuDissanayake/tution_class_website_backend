@@ -15,10 +15,10 @@ export const chatWithAI = async (req, res) => {
        
        if (lowerPrompt.includes('hi') || lowerPrompt.includes('hello')) {
            reply = "Hello there! Welcome to TuitionHub. I am the AI Assistant. How can I help you today?";
+       } else if (lowerPrompt.includes('create') || lowerPrompt.includes('teacher')) {
+           reply = "To create a class, you must register as a Teacher. Once logged in, go to your Dashboard and click 'Create Class'.";
        } else if (lowerPrompt.includes('class') || lowerPrompt.includes('search') || lowerPrompt.includes('find')) {
            reply = "You can easily find classes by navigating to the 'Search' page! There you can filter by Subject, Grade, and Location, or even view classes on the Interactive Map.";
-       } else if (lowerPrompt.includes('teacher') || lowerPrompt.includes('create')) {
-           reply = "To create a class, you must register as a Teacher. Once logged in, go to your Dashboard and click 'Create Class'.";
        } else if (lowerPrompt.includes('reserve') || lowerPrompt.includes('seat')) {
            reply = "To reserve a seat, click 'View Details' on any class in the search page, and then click the 'Reserve Seat' button.";
        }
@@ -29,7 +29,7 @@ export const chatWithAI = async (req, res) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    const systemPrompt = "You are a helpful assistant for an online tuition platform called TuitionHub. Help students find classes, explain subjects, or guide them on how to use the platform.";
+    const systemPrompt = "You are a helpful assistant for an online tuition platform called TuitionHub. Help students find classes, explain subjects, or guide them on how to use the platform. To create a class, tell users to register as a Teacher, login, go to Dashboard, and click 'Create Class'.";
     const fullPrompt = `${systemPrompt}\n\nUser: ${prompt}`;
 
     let text;
@@ -46,10 +46,10 @@ export const chatWithAI = async (req, res) => {
       
       if (lowerPrompt.includes('hi') || lowerPrompt.includes('hello')) {
           text = "Hello there! Welcome to TuitionHub. My main AI is currently busy, but I am still happy to help you. How can I assist you today?";
+      } else if (lowerPrompt.includes('create') || lowerPrompt.includes('teacher')) {
+          text = "To create a class, you must register as a Teacher. Once logged in, go to your Dashboard and click 'Create Class'.";
       } else if (lowerPrompt.includes('class') || lowerPrompt.includes('search') || lowerPrompt.includes('find')) {
           text = "You can easily find classes by navigating to the 'Search' page! There you can filter by Subject, Grade, and Location, or even view classes on the Interactive Map.";
-      } else if (lowerPrompt.includes('teacher') || lowerPrompt.includes('create')) {
-          text = "To create a class, you must register as a Teacher. Once logged in, go to your Dashboard and click 'Create Class'.";
       } else if (lowerPrompt.includes('reserve') || lowerPrompt.includes('seat')) {
           text = "To reserve a seat, click 'View Details' on any class in the search page, and then click the 'Reserve Seat' button.";
       }
