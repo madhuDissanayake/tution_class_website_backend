@@ -2,7 +2,10 @@ import Class from '../models/Class.js';
 import Review from '../models/Review.js';
 import Reservation from '../models/Reservation.js';
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 import { notifyAdmins } from '../utils/notifyAdmins.js';
+import sendEmail from '../utils/sendEmail.js';
+import { getClassCreatedEmail } from '../utils/emailTemplates.js';
 
 // @desc    Get all classes (with search and filters)
 // @route   GET /api/classes
@@ -126,6 +129,23 @@ export const createClass = async (req, res) => {
       type: 'info',
       classId: createdClass._id
     });
+
+    // Notify admins
+    await notifyAdmins(`Admin created a new class "${createdClass.title}".`);
+
+    // Send email to teacher
+    try {
+      const teacher = await User.findById(teacherId);
+      if (teacher && teacher.email) {
+        await sendEmail({
+          to: teacher.email,
+          subject: 'TuitionHub - New Class Created',
+          html: getClassCreatedEmail(teacher.name, createdClass.title)
+        });
+      }
+    } catch (emailErr) {
+      console.error('Failed to send class creation email:', emailErr);
+    }
 
     res.status(201).json(createdClass);
   } catch (error) {

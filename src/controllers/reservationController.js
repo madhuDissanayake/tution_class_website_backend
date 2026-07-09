@@ -4,7 +4,7 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { notifyAdmins } from '../utils/notifyAdmins.js';
 import sendEmail from '../utils/sendEmail.js';
-import { getReservationApprovedEmail } from '../utils/emailTemplates.js';
+import { getReservationApprovedEmail, getSeatBookingRequestEmail, getSeatBookingApprovedTeacherEmail } from '../utils/emailTemplates.js';
 
 
 // @desc    Create a reservation
@@ -60,6 +60,20 @@ export const createReservation = async (req, res) => {
 
     // Notify admins for approval
     await notifyAdmins(`Student ${req.user.name} (${req.user.email}) requested to book a seat in class "${targetClass.title}". Pending Admin approval.`, 'reservation_request', created._id);
+
+    // Send email to teacher
+    try {
+      const teacher = await User.findById(targetClass.teacherId);
+      if (teacher && teacher.email) {
+        await sendEmail({
+          to: teacher.email,
+          subject: 'TuitionHub - New Seat Booking Request',
+          html: getSeatBookingRequestEmail(teacher.name, req.user.name, req.user.email, req.user.phone || 'N/A', targetClass.title)
+        });
+      }
+    } catch (emailErr) {
+      console.error('Failed to send seat booking request email:', emailErr);
+    }
 
     res.status(201).json(created);
   } catch (error) {
@@ -157,8 +171,17 @@ export const confirmReservation = async (req, res) => {
           });
         }
       }
+      
+      // Also send email to teacher
+      if (teacher && teacher.email) {
+        await sendEmail({
+          to: teacher.email,
+          subject: `TuitionHub - Seat Booking Approved`,
+          html: getSeatBookingApprovedTeacherEmail(teacher.name, studentName, targetClass.title)
+        });
+      }
     } catch (emailErr) {
-      console.error('Failed to send reservation approval email:', emailErr);
+      console.error('Failed to send reservation approval emails:', emailErr);
     }
 
     // Notify admins (optional, maybe not needed since admin did it, but kept for audit)
