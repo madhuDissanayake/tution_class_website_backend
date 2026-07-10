@@ -22,7 +22,8 @@ const PORT = process.env.PORT || 5000;
 app.use(helmet());
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://project-ikmzi.vercel.app'
+  'https://project-ikmzi.vercel.app',
+  'https://tuitionhub.madhudissanayake.com'
 ];
 
 app.use(cors({
