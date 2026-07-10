@@ -12,13 +12,14 @@ import { getClassCreatedEmail } from '../utils/emailTemplates.js';
 // @access  Public
 export const getClasses = async (req, res) => {
   try {
-    const { subject, grade, medium, search, teacherId } = req.query;
+    const { subject, grade, medium, search, teacherId, isPopular } = req.query;
     let query = {};
     
     if (subject) query.subject = subject;
     if (grade) query.grade = grade;
     if (medium) query.medium = medium;
     if (teacherId) query.teacherId = teacherId;
+    if (isPopular === 'true') query.isPopular = true;
     if (search) {
       query.title = { $regex: search, $options: 'i' };
     }

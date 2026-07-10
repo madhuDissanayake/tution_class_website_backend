@@ -13,6 +13,7 @@ const classSchema = new mongoose.Schema({
     address: { type: String }
   },
   isOnline: { type: Boolean, default: false },
+  isPopular: { type: Boolean, default: false },
   groupLink: { type: String },
   fee: { type: Number, required: true },
   capacity: { type: Number, required: true },
