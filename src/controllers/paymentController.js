@@ -269,11 +269,15 @@ export const getClassPaymentHistory = async (req, res) => {
 // @route   POST /api/payment/notify
 // @access  Public (verified via hash, not auth token)
 export const payhereNotify = async (req, res) => {
+
+  console.log(req)
   try {
     if (!req.body || Object.keys(req.body).length === 0) {
       console.error('PayHere notify: empty req.body — check express.urlencoded() is registered before routes');
       return res.status(400).send('Empty payload');
     }
+
+    //console.log("7777777777777777777777777777" )
 
     const {
       merchant_id,
@@ -312,9 +316,15 @@ export const payhereNotify = async (req, res) => {
     payment.method = method;
     payment.rawNotifyPayload = req.body;
 
+    //console.log("11111111111111111111111111" )
+    //console.log("payment",payment)
+
+
     if (status_code === '2') {
       payment.status = 'completed';
       await payment.save();
+
+      console.log("payment",payment)
 
       if (payment.purpose === 'teacher_registration_fee') {
         await handleTeacherRegistrationSuccess(payment);
@@ -339,15 +349,22 @@ export const payhereNotify = async (req, res) => {
   }
 };
 
+// ── FIXED: mutate specific nested fields instead of replacing the whole
+// teacherDetails subdocument. Spreading a Mongoose subdocument only copies
+// its *own* enumerable props, not schema-backed nested objects like
+// wallet/payoutDetails — so the old code was overwriting those with
+// `undefined` and Mongoose's cast validation was throwing on save.
 const handleTeacherRegistrationSuccess = async (payment) => {
   const user = await User.findById(payment.user);
   if (!user) return;
 
-  user.teacherDetails = {
-    ...(user.teacherDetails || {}),
-    paymentStatus: 'completed',
-    paymentDate: new Date()
-  };
+  if (!user.teacherDetails) {
+    user.teacherDetails = {};
+  }
+
+  user.teacherDetails.paymentStatus = 'completed';
+  user.teacherDetails.paymentDate = new Date();
+
   await user.save();
 
   await notifyAdmins(
