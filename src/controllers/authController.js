@@ -21,6 +21,8 @@ export const registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const isTeacher = role === 'teacher';
+
     const user = await User.create({
       name,
       email,
@@ -29,17 +31,33 @@ export const registerUser = async (req, res) => {
       status: 'pending',
       phone,
       isEmailVerified: true,
-      ...(role === 'teacher' && { teacherDetails })
+      ...(isTeacher && {
+        teacherDetails: { ...teacherDetails, paymentStatus: 'unpaid' }
+      })
     });
 
     if (user) {
+      if (isTeacher) {
+        // Don't notify admins yet — wait for the registration fee to clear.
+        await sendEmail({
+          to: user.email,
+          subject: 'TuitionHub - Complete Your Registration Payment',
+          html: getRegistrationPendingEmail(user.name)
+        });
+
+        return res.status(201).json({
+          message: 'Account created. Please log in to complete your registration fee payment.',
+          email: user.email,
+          requiresPayment: true
+        });
+      }
+
       await sendEmail({
         to: user.email,
         subject: 'TuitionHub - Registration Received',
         html: getRegistrationPendingEmail(user.name)
       });
 
-      // Notify admins
       await notifyAdmins(`A new ${user.role} (${user.name}) has registered.`, 'registration_request', user._id);
 
       res.status(201).json({
@@ -51,6 +69,7 @@ export const registerUser = async (req, res) => {
       res.status(400).json({ message: 'Invalid user data' });
     }
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: error.message });
   }
 };
@@ -65,21 +84,32 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await bcrypt.compare(password, user.password))) {
-      if (user.status === 'pending') {
-        return res.status(403).json({ 
-          message: 'Your account is pending admin approval' 
-        });
-      }
-      
-      if (user.status === 'rejected') {
-        return res.status(403).json({ 
-          message: 'Your account registration was rejected' 
-        });
-      }
-
       const token = generateToken(res, user._id, user.role);
 
-      // Notify admins (optional: skip if the user is an admin themselves to avoid noise)
+      if (user.role === 'teacher' && user.teacherDetails?.paymentStatus !== 'completed') {
+        return res.status(402).json({
+          message: 'Registration fee payment required before you can proceed',
+          requiresPayment: true,
+          token,
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        });
+      }
+
+      if (user.status === 'pending') {
+        return res.status(403).json({
+          message: 'Your account is pending admin approval'
+        });
+      }
+
+      if (user.status === 'rejected') {
+        return res.status(403).json({
+          message: 'Your account registration was rejected'
+        });
+      }
+
       if (user.role !== 'admin') {
         await notifyAdmins(`${user.role === 'teacher' ? 'Teacher' : 'Student'} ${user.name} just logged in.`);
       }
@@ -106,7 +136,7 @@ export const verifyEmail = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
     if (user.isEmailVerified) return res.status(400).json({ message: 'Email already verified' });
-    
+
     if (user.emailVerificationOTP !== otp || user.otpExpires < Date.now()) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
@@ -183,7 +213,7 @@ export const resetPassword = async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
-    
+
     if (user.resetPasswordOTP !== otp || user.resetPasswordExpires < Date.now()) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }

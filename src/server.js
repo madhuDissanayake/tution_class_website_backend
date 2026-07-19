@@ -11,6 +11,8 @@ import aiRoutes from './routes/aiRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
+import paymentRouter from './routes/paymentRoutes.js';
+import earningRoutes from './routes/earningRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -37,6 +39,8 @@ app.use(cors({
   credentials: true
 }));;
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // required for PayHere's notify_url payload
+
 
 // Rate Limiter for Authentication routes
 const authLimiter = rateLimit({
@@ -57,6 +61,8 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/payment', paymentRouter);
+app.use('/api/earnings', earningRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

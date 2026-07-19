@@ -19,7 +19,23 @@ const userSchema = new mongoose.Schema({
     experience: { type: String },
     subjects: { type: String },
     mediums: [{ type: String }],
-    grades: [{ type: String }]
+    grades: [{ type: String }],
+    paymentStatus: { type: String, enum: ['unpaid', 'pending', 'completed'], default: 'unpaid' },
+    paymentDate: { type: Date },
+    // ── Earnings wallet ──
+    wallet: {
+      available: { type: Number, default: 0 },        // withdrawable now
+      pendingWithdrawal: { type: Number, default: 0 }, // locked in an open withdrawal request
+      totalEarned: { type: Number, default: 0 },       // lifetime, after commission
+      totalWithdrawn: { type: Number, default: 0 }     // lifetime, paid out
+    },
+    // Bank/payout details teacher provides for withdrawal
+    payoutDetails: {
+      bankName: { type: String },
+      accountName: { type: String },
+      accountNumber: { type: String },
+      branch: { type: String }
+    }
   }
 }, { timestamps: true });
 

@@ -14,7 +14,7 @@ export const getClasses = async (req, res) => {
   try {
     const { subject, grade, medium, search, teacherId, isPopular } = req.query;
     let query = {};
-    
+
     if (subject) query.subject = subject;
     if (grade) query.grade = grade;
     if (medium) query.medium = medium;
@@ -25,7 +25,7 @@ export const getClasses = async (req, res) => {
     }
 
     const classes = await Class.find(query).populate('teacherId', 'name profilePicture');
-    
+
     // Aggregation for class ratings
     const classIds = classes.map(c => c._id);
     const stats = await Review.aggregate([
@@ -45,7 +45,7 @@ export const getClasses = async (req, res) => {
       { $match: { classId: { $in: classIds }, status: { $ne: 'cancelled' } } },
       { $group: { _id: '$classId', count: { $sum: 1 } } }
     ]);
-    
+
     const enrollmentsMap = {};
     reservations.forEach(r => {
       enrollmentsMap[r._id.toString()] = r.count;
@@ -112,46 +112,111 @@ export const getClassById = async (req, res) => {
 // @route   POST /api/classes
 // @access  Private (Admin)
 export const createClass = async (req, res) => {
+
   try {
-    const { teacherId } = req.body;
+
+    const {
+      teacherId,
+      isOnline,
+      lat,
+      lng,
+      address
+    } = req.body;
+
+
     if (!teacherId) {
-       return res.status(400).json({ message: 'teacherId is required' });
+      return res.status(400).json({
+        message: "teacherId is required"
+      });
     }
-    const newClass = new Class({
+
+
+
+    let classData = {
       ...req.body
-    });
-    
+    };
+
+
+
+    // Physical class
+    if (!isOnline) {
+
+      if (!lat || !lng) {
+
+        return res.status(400).json({
+          message: "Location coordinates required for physical class"
+        });
+
+      }
+
+
+      classData.location = {
+        type: "Point",
+        coordinates: [
+          Number(lng),
+          Number(lat)
+        ],
+        address
+      };
+
+    }
+
+
+
+    // Online class
+    else {
+
+      classData.location = undefined;
+
+    }
+
+
+
+    const newClass = new Class(classData);
+
+
     const createdClass = await newClass.save();
-    
-    // Notify the teacher that a class has been created for them
+
+
+
+    // Notification
+
     await Notification.create({
+
       userId: teacherId,
-      message: `Admin has created a new class for you: "${createdClass.title}"`,
-      type: 'info',
+
+      message:
+        `Admin has created a new class for you: "${createdClass.title}"`,
+
+      type: "info",
+
       classId: createdClass._id
+
     });
+
+
 
     // Notify admins
-    await notifyAdmins(`Admin created a new class "${createdClass.title}".`);
 
-    // Send email to teacher
-    try {
-      const teacher = await User.findById(teacherId);
-      if (teacher && teacher.email) {
-        await sendEmail({
-          to: teacher.email,
-          subject: 'TuitionHub - New Class Created',
-          html: getClassCreatedEmail(teacher.name, createdClass.title)
-        });
-      }
-    } catch (emailErr) {
-      console.error('Failed to send class creation email:', emailErr);
-    }
+    await notifyAdmins(
+      `Admin created a new class "${createdClass.title}".`
+    );
+
+
 
     res.status(201).json(createdClass);
+
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+
+    console.log(error);
+
+    res.status(400).json({
+      message: error.message
+    });
+
   }
+
 };
 
 // @desc    Update a class
@@ -166,11 +231,11 @@ export const updateClass = async (req, res) => {
     }
 
     const updatedClass = await Class.findByIdAndUpdate(
-      req.params.id, 
+      req.params.id,
       req.body,
       { new: true }
     );
-    
+
     res.json(updatedClass);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -189,7 +254,7 @@ export const deleteClass = async (req, res) => {
     }
 
     await classData.deleteOne();
-    
+
     res.json({ message: 'Class removed' });
   } catch (error) {
     res.status(500).json({ message: error.message });
