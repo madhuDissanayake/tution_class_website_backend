@@ -9,7 +9,21 @@ import { getRegistrationPendingEmail, getPasswordResetEmail } from '../utils/ema
 // @route   POST /api/auth/register
 // @access  Public
 export const registerUser = async (req, res) => {
-  const { name, email, password, role, phone, teacherDetails } = req.body;
+  let { name, email, password, role, phone, teacherDetails } = req.body;
+
+  // If teacherDetails comes as a JSON string from FormData
+  if (typeof teacherDetails === 'string') {
+    try {
+      teacherDetails = JSON.parse(teacherDetails);
+    } catch (e) {
+      // Ignore parse error, it might be already an object or undefined
+    }
+  }
+
+  let profilePicture = '';
+  if (req.file) {
+    profilePicture = `/uploads/profiles/${req.file.filename}`;
+  }
 
   try {
     const userExists = await User.findOne({ email });
@@ -30,6 +44,7 @@ export const registerUser = async (req, res) => {
       role: role || 'student',
       status: 'pending',
       phone,
+      profilePicture,
       isEmailVerified: true,
       ...(isTeacher && {
         teacherDetails: { ...teacherDetails, paymentStatus: 'unpaid' }

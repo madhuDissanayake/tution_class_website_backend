@@ -13,6 +13,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import paymentRouter from './routes/paymentRoutes.js';
 import earningRoutes from './routes/earningRoutes.js';
+import path from 'path';
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +42,8 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // required for PayHere's notify_url payload
 
+// Serve static files
+app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 
 // Rate Limiter for Authentication routes
 const authLimiter = rateLimit({

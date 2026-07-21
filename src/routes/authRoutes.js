@@ -7,10 +7,11 @@ import {
   forgotPassword, 
   resetPassword 
 } from '../controllers/authController.js';
+import upload from '../middleware/uploadMiddleware.js';
 
 const router = express.Router();
 
-router.post('/register', registerUser);
+router.post('/register', upload.single('profilePicture'), registerUser);
 router.post('/login', loginUser);
 router.post('/verify-email', verifyEmail);
 router.post('/resend-otp', resendOTP);
