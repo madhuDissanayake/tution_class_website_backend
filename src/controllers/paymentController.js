@@ -367,6 +367,23 @@ const handleTeacherRegistrationSuccess = async (payment) => {
 
   await user.save();
 
+  // Record the registration fee as a platform earning (100% commission)
+  const alreadyRecorded = await Earning.findOne({ payment: payment._id });
+  if (!alreadyRecorded) {
+    const d = new Date();
+    const currentMonthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    
+    await Earning.create({
+      teacher: user._id,
+      payment: payment._id,
+      month: currentMonthStr,
+      grossAmount: payment.amount,
+      commissionRate: 1, // 100% platform fee
+      commissionAmount: payment.amount,
+      teacherAmount: 0
+    });
+  }
+
   await notifyAdmins(
     `Teacher ${user.name} paid the registration fee. Ready for review.`,
     'registration_request',

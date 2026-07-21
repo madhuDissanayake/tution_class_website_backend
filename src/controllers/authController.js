@@ -109,7 +109,8 @@ export const loginUser = async (req, res) => {
           _id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          profilePicture: user.profilePicture
         });
       }
 
@@ -135,6 +136,7 @@ export const loginUser = async (req, res) => {
         email: user.email,
         role: user.role,
         status: user.status,
+        profilePicture: user.profilePicture,
         token,
       });
     } else {
@@ -169,6 +171,7 @@ export const verifyEmail = async (req, res) => {
       email: user.email,
       role: user.role,
       status: user.status,
+      profilePicture: user.profilePicture,
       token,
     });
   } catch (error) {

@@ -16,7 +16,7 @@ export const getMyEarnings = async (req, res) => {
     }
 
     const user = await User.findById(req.user._id).select('teacherDetails.wallet teacherDetails.payoutDetails');
-    const earnings = await Earning.find({ teacher: req.user._id })
+    const earnings = await Earning.find({ teacher: req.user._id, teacherAmount: { $gt: 0 } })
       .populate('classId', 'title')
       .populate('student', 'name')
       .sort({ createdAt: -1 })
@@ -135,7 +135,13 @@ export const getAdminEarningsOverview = async (req, res) => {
           totalGrossRevenue: { $sum: '$grossAmount' },
           totalPlatformCommission: { $sum: '$commissionAmount' },
           totalTeacherEarnings: { $sum: '$teacherAmount' },
-          totalTransactions: { $sum: 1 }
+          totalTransactions: { $sum: 1 },
+          registrationRevenue: {
+            $sum: { $cond: [{ $eq: ['$commissionRate', 1] }, '$grossAmount', 0] }
+          },
+          classCommission: {
+            $sum: { $cond: [{ $ne: ['$commissionRate', 1] }, '$commissionAmount', 0] }
+          }
         }
       }
     ]);
@@ -144,7 +150,9 @@ export const getAdminEarningsOverview = async (req, res) => {
       totalGrossRevenue: 0,
       totalPlatformCommission: 0,
       totalTeacherEarnings: 0,
-      totalTransactions: 0
+      totalTransactions: 0,
+      registrationRevenue: 0,
+      classCommission: 0
     };
 
     // ── Pending withdrawal liabilities ──
