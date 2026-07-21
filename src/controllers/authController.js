@@ -111,7 +111,7 @@ export const loginUser = async (req, res) => {
       }
 
       if (user.role !== 'admin') {
-        await notifyAdmins(`${user.role === 'teacher' ? 'Teacher' : 'Student'} ${user.name} just logged in.`);
+        notifyAdmins(`${user.role === 'teacher' ? 'Teacher' : 'Student'} ${user.name} just logged in.`);
       }
 
       res.json({

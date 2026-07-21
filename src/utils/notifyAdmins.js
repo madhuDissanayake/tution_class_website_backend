@@ -63,15 +63,17 @@ export const notifyAdmins = async (message, type = 'info', subjectUserId = null,
         `;
       };
 
-      // Send email to each admin
-      for (const admin of admins) {
-        await sendEmail({
-          to: admin.email,
-          subject: type === 'registration_request'
-            ? `TuitionHub — New Teacher Registration: ${extraData.teacher?.name || 'Unknown'}`
-            : 'TuitionHub Admin Alert',
-          html: buildEmailHtml(admin.name)
-        });
+      // Send email to each admin only for important events, not generic info
+      if (type !== 'info') {
+        for (const admin of admins) {
+          await sendEmail({
+            to: admin.email,
+            subject: type === 'registration_request'
+              ? `TuitionHub — New Teacher Registration: ${extraData.teacher?.name || 'Unknown'}`
+              : 'TuitionHub Admin Alert',
+            html: buildEmailHtml(admin.name)
+          });
+        }
       }
     }
   } catch (error) {
