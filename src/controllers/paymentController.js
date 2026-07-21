@@ -370,7 +370,8 @@ const handleTeacherRegistrationSuccess = async (payment) => {
   await notifyAdmins(
     `Teacher ${user.name} paid the registration fee. Ready for review.`,
     'registration_request',
-    user._id
+    user._id,
+    { teacher: user }
   );
 };
 

@@ -13,7 +13,7 @@ const router = express.Router();
 
 router.route('/')
   .get(getClasses)
-  .post(protect, admin, createClass);
+  .post(protect, createClass);  // Admin or approved teacher (checked in controller)
 
 router.route('/:id')
   .get(getClassById)

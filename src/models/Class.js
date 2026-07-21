@@ -80,7 +80,17 @@ const classSchema = new mongoose.Schema(
       startTime:String,
       endTime:String
     }
-  ]
+  ],
+
+  status: {
+    type: String,
+    enum: ['pending', 'published', 'rejected'],
+    default: 'published'   // Admin-created classes auto-published; teacher-created → 'pending'
+  },
+
+  rejectionReason: {
+    type: String
+  }
 
 },
 {

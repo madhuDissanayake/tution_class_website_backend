@@ -255,4 +255,107 @@ router.put('/classes/:id/toggle-popular', protect, admin, async (req, res) => {
   }
 });
 
+// ==========================================
+// PENDING CLASS APPROVALS
+// ==========================================
+
+// @desc    Get all pending classes (submitted by teachers)
+// @route   GET /api/admin/pending-classes
+// @access  Private (Admin)
+router.get('/pending-classes', protect, admin, async (req, res) => {
+  try {
+    const classes = await Class.find({ status: 'pending' })
+      .populate('teacherId', 'name email phone profilePicture')
+      .sort({ createdAt: -1 });
+    res.json(classes);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Approve a pending class → publish it
+// @route   PUT /api/admin/classes/:id/approve
+// @access  Private (Admin)
+router.put('/classes/:id/approve', protect, admin, async (req, res) => {
+  try {
+    const classDoc = await Class.findById(req.params.id).populate('teacherId', 'name email');
+    if (!classDoc) return res.status(404).json({ message: 'Class not found' });
+
+    classDoc.status = 'published';
+    classDoc.rejectionReason = undefined;
+    await classDoc.save();
+
+    // Mark related admin notifications as read
+    await Notification.updateMany(
+      { classId: classDoc._id, type: 'class_approval_request' },
+      { $set: { isRead: true } }
+    );
+
+    // Notify teacher
+    await Notification.create({
+      userId: classDoc.teacherId._id,
+      message: `🎉 Your class "${classDoc.title}" has been approved and is now published!`,
+      type: 'info',
+      classId: classDoc._id
+    });
+
+    // Email teacher
+    await sendEmail({
+      to: classDoc.teacherId.email,
+      subject: `TuitionHub — Your class "${classDoc.title}" is now LIVE!`,
+      html: `
+        <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;background:#0f172a;color:#e2e8f0;border-radius:12px;overflow:hidden;">
+          <div style="background:linear-gradient(135deg,#10b981,#059669);padding:24px 28px;">
+            <h2 style="margin:0;color:#fff;font-size:20px;font-weight:700;">🎉 Class Approved!</h2>
+          </div>
+          <div style="padding:24px 28px;">
+            <p style="font-size:15px;color:#cbd5e1;">Hello ${classDoc.teacherId.name},</p>
+            <p style="font-size:14px;color:#94a3b8;">Your class <strong style="color:#f1f5f9;">"${classDoc.title}"</strong> has been reviewed and approved by the admin. It is now live and visible to students.</p>
+          </div>
+          <div style="padding:14px 28px;background:#1e293b;font-size:12px;color:#475569;text-align:center;">
+            TuitionHub · ${new Date().toLocaleString()}
+          </div>
+        </div>
+      `
+    });
+
+    res.json({ message: 'Class approved and published', class: classDoc });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @desc    Reject a pending class
+// @route   PUT /api/admin/classes/:id/reject
+// @access  Private (Admin)
+router.put('/classes/:id/reject', protect, admin, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const classDoc = await Class.findById(req.params.id).populate('teacherId', 'name email');
+    if (!classDoc) return res.status(404).json({ message: 'Class not found' });
+
+    classDoc.status = 'rejected';
+    classDoc.rejectionReason = reason || 'No reason provided';
+    await classDoc.save();
+
+    // Mark related admin notifications as read
+    await Notification.updateMany(
+      { classId: classDoc._id, type: 'class_approval_request' },
+      { $set: { isRead: true } }
+    );
+
+    // Notify teacher
+    await Notification.create({
+      userId: classDoc.teacherId._id,
+      message: `Your class "${classDoc.title}" was not approved. Reason: ${classDoc.rejectionReason}`,
+      type: 'info',
+      classId: classDoc._id
+    });
+
+    res.json({ message: 'Class rejected', class: classDoc });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;
