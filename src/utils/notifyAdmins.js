@@ -63,18 +63,8 @@ export const notifyAdmins = async (message, type = 'info', subjectUserId = null,
         `;
       };
 
-      // Send email to each admin only for important events, not generic info
-      if (type !== 'info') {
-        for (const admin of admins) {
-          await sendEmail({
-            to: admin.email,
-            subject: type === 'registration_request'
-              ? `TuitionHub — New Teacher Registration: ${extraData.teacher?.name || 'Unknown'}`
-              : 'TuitionHub Admin Alert',
-            html: buildEmailHtml(admin.name)
-          });
-        }
-      }
+      // Emails to admins have been disabled to prevent delays. 
+      // Notifications will only appear in the admin dashboard.
     }
   } catch (error) {
     console.error('Failed to notify admins:', error);

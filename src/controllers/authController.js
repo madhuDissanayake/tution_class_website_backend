@@ -39,7 +39,7 @@ export const registerUser = async (req, res) => {
     if (user) {
       if (isTeacher) {
         // Don't notify admins yet — wait for the registration fee to clear.
-        await sendEmail({
+        sendEmail({
           to: user.email,
           subject: 'TuitionHub - Complete Your Registration Payment',
           html: getRegistrationPendingEmail(user.name)
@@ -52,13 +52,13 @@ export const registerUser = async (req, res) => {
         });
       }
 
-      await sendEmail({
+      sendEmail({
         to: user.email,
         subject: 'TuitionHub - Registration Received',
         html: getRegistrationPendingEmail(user.name)
       });
 
-      await notifyAdmins(`A new ${user.role} (${user.name}) has registered.`, 'registration_request', user._id);
+      notifyAdmins(`A new ${user.role} (${user.name}) has registered.`, 'registration_request', user._id);
 
       res.status(201).json({
         message: 'Registration successful. Please wait for admin approval.',
