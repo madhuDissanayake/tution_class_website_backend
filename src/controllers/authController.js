@@ -214,11 +214,11 @@ export const forgotPassword = async (req, res) => {
     user.resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await sendEmail({
+    sendEmail({
       to: user.email,
       subject: 'TuitionHub - Password Reset Code',
       html: getPasswordResetEmail(user.name, otp)
-    });
+    }).catch(err => console.error('Failed to send reset email in background:', err));
 
     res.json({ message: 'Password reset OTP sent to email' });
   } catch (error) {
