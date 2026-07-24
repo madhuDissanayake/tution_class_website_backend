@@ -52,11 +52,13 @@ export const createReservation = async (req, res) => {
       message: `Your request to book a seat in "${targetClass.title}" has been sent to the Admin and is pending approval.`
     });
 
-    await Notification.create({
-      userId: targetClass.teacherId,
-      message: `Student ${req.user.name} (${req.user.email}) has requested to book a seat in your class "${targetClass.title}".`,
-      type: 'info'
-    });
+    if (targetClass.teacherId) {
+      await Notification.create({
+        userId: targetClass.teacherId,
+        message: `Student ${req.user.name} (${req.user.email}) has requested to book a seat in your class "${targetClass.title}".`,
+        type: 'info'
+      });
+    }
 
     // Notify admins for approval
     await notifyAdmins(`Student ${req.user.name} (${req.user.email}) requested to book a seat in class "${targetClass.title}". Pending Admin approval.`, 'reservation_request', created._id);
