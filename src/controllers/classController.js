@@ -21,7 +21,13 @@ export const getClasses = async (req, res) => {
     if (teacherId) query.teacherId = teacherId;
     if (isPopular === 'true') query.isPopular = true;
     if (search) {
-      query.title = { $regex: search, $options: 'i' };
+      const matchingTeachers = await User.find({ role: 'teacher', name: { $regex: search, $options: 'i' } }).select('_id');
+      const teacherIds = matchingTeachers.map(t => t._id);
+
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { teacherId: { $in: teacherIds } }
+      ];
     }
 
     // Public search only sees published classes.
